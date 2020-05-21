@@ -1,11 +1,34 @@
-import matplotlib
+from __future__ import print_function
+
+import itertools
+from collections import namedtuple
+
+
 import numpy as np
 import pandas as pd
-from collections import namedtuple
 from matplotlib import pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+
+from ipywidgets import interact, interactive, fixed, interact_manual
+import ipywidgets as widgets
 
 EpisodeStats = namedtuple("Stats",["episode_lengths", "episode_rewards"])
+
+def render_episode(env, Q):
+    screens = []
+    state = env.reset()
+    rewards = 0
+    # First screen
+    screens.append((env.render(mode='ansi'), None, 0))
+    for t in itertools.count():
+        best_action = np.argmax(Q[state])
+        next_state, reward, done, _ = env.step(best_action)
+        rewards += reward
+        # Append screens
+        screens.append((env.render(mode='ansi'), best_action, rewards))
+        if done:
+            break
+        state = next_state
+    return screens
 
 def plot_episode_stats(stats, smoothing_window=10, noshow=False):
 
@@ -58,3 +81,10 @@ def plot_episode_stats(stats, smoothing_window=10, noshow=False):
 
 
     return fig1, fig2, fig3, fig4
+
+def play_ansi_sequence(ansi_sequence):
+    def f(x):
+        (screen, action, rewards) = ansi_sequence[x]
+        print("\r{}.".format(screen), end="")
+        return ("action:",action," rewards:",rewards)
+    interact(f, x = widgets.IntSlider(min=0, max=len(ansi_sequence)-1, step=1, value=0))
